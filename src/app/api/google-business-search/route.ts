@@ -1,28 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get('q');
-  if (!q) {
-    return NextResponse.json({ predictions: [] });
-  }
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Missing Google API Key' }, { status: 500 });
-  }
+const GOOGLE_PLACES_API = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+
+export async function GET(request: Request) {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(q)}&types=establishment&key=${apiKey}`;
-    const { data } = await axios.get(url);
-    // Map predictions to a simpler format
-    const predictions = (data.predictions || []).map((p: any) => ({
-      place_id: p.place_id,
-      name: p.structured_formatting?.main_text || p.description,
-      formatted_address: p.description,
-      icon: p.icon,
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q');
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+
+    // Debug log
+    console.log('API Key available:', !!apiKey);
+
+    if (!query) {
+      return NextResponse.json(
+        { error: 'Query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Google Places API key is not configured' },
+        { status: 500 }
+      );
+    }
+
+    const response = await axios.get(GOOGLE_PLACES_API, {
+      params: {
+        input: query,
+        key: apiKey,
+        types: 'establishment',
+        components: 'country:us', // Restrict to US businesses
+      },
+    });
+
+    if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
+      throw new Error(`Google Places API error: ${response.data.status}`);
+    }
+
+    const predictions = response.data.predictions.map((prediction: any) => ({
+      place_id: prediction.place_id,
+      name: prediction.structured_formatting.main_text,
+      formatted_address: prediction.structured_formatting.secondary_text,
+      icon: prediction.icon,
     }));
+
     return NextResponse.json({ predictions });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch from Google' }, { status: 500 });
+    console.error('Error fetching business suggestions:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch business suggestions' },
+      { status: 500 }
+    );
   }
 } 
