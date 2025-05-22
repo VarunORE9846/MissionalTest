@@ -5,28 +5,52 @@ export interface BusinessProfile {
   name: string;
   address: string;
   icon?: string;
+  phone?: string;
+  website?: string;
+  rating?: number;
+  reviews?: number;
+  photos?: string[];
 }
 
 interface BusinessState {
   selected: BusinessProfile | null;
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: BusinessState = {
   selected: null,
+  loading: false,
+  error: null,
 };
 
 const businessSlice = createSlice({
   name: 'business',
   initialState,
   reducers: {
-    setBusinessProfile(state, action: PayloadAction<BusinessProfile>) {
+    setBusinessProfile: (state, action: PayloadAction<BusinessProfile>) => {
       state.selected = action.payload;
+      state.error = null;
     },
-    clearBusinessProfile(state) {
+    clearBusinessProfile: (state) => {
       state.selected = null;
+      state.error = null;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.loading = false;
     },
   },
 });
 
-export const { setBusinessProfile, clearBusinessProfile } = businessSlice.actions;
+export const {
+  setBusinessProfile,
+  clearBusinessProfile,
+  setLoading,
+  setError,
+} = businessSlice.actions;
+
 export default businessSlice.reducer; 

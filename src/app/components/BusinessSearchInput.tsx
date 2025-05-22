@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { useAppDispatch } from '../../redux/store';
 import { setBusinessProfile } from '../../redux/slices/businessSlice';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface Suggestion {
   place_id: string;
@@ -15,74 +16,117 @@ const BusinessSearchInput: React.FC = () => {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const dispatch = useAppDispatch();
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedQuery = useDebounce(query, 400);
 
-  const fetchSuggestions = async (input: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await axios.get(`/api/google-business-search?q=${encodeURIComponent(input)}`);
-      if (res.status === 200) {
-        setSuggestions(res?.data?.predictions || []);
-      } else {
-        setError('Failed to fetch suggestions');
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!debouncedQuery.trim()) {
+        setSuggestions([]);
+        return;
       }
-    } catch (err) {
-      setError('Failed to fetch suggestions');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await axios.get(`/api/google-business-search?q=${encodeURIComponent(debouncedQuery)}`);
+        setSuggestions(response.data.predictions || []);
+      } catch (err) {
+        setError('Failed to fetch suggestions. Please try again.');
+        setSuggestions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedQuery]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    setSuggestions([]);
-    if (debounceRef?.current) clearTimeout(debounceRef?.current);
-    if (value.trim().length === 0) return;
-    debounceRef.current = setTimeout(() => {
-      fetchSuggestions(value);
-    }, 400);
+    setQuery(e.target.value);
   };
 
   const handleSelect = (suggestion: Suggestion) => {
     dispatch(setBusinessProfile({
-      place_id: suggestion?.place_id,
-      name: suggestion?.name,
-      address: suggestion?.formatted_address,
-      icon: suggestion?.icon,
+      place_id: suggestion.place_id,
+      name: suggestion.name,
+      address: suggestion.formatted_address,
+      icon: suggestion.icon,
     }));
-    setQuery(suggestion?.name || '');
+    setQuery(suggestion.name);
     setSuggestions([]);
+    setIsFocused(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      setSuggestions([]);
+      setIsFocused(false);
+    }
   };
 
   return (
     <div className="w-full max-w-md mx-auto relative">
-      <input
-        type="text"
-        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        placeholder="Type business name"
-        value={query}
-        onChange={handleInputChange}
-        autoComplete="off"
-      />
-      {loading && <div className="absolute right-3 top-3 text-xs text-gray-400">Loading...</div>}
-      {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
-      {suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded shadow mt-1 max-h-60 overflow-y-auto">
-          {suggestions.map((s) => (
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+          placeholder="Search for a business..."
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => setIsFocused(true)}
+          onKeyDown={handleKeyDown}
+          autoComplete="off"
+          aria-label="Business search"
+          aria-expanded={suggestions.length > 0}
+          aria-controls="business-suggestions"
+          role="combobox"
+        />
+        {loading && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="text-red-500 text-sm mt-2" role="alert">
+          {error}
+        </div>
+      )}
+
+      {isFocused && suggestions.length > 0 && (
+        <ul
+          id="business-suggestions"
+          className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto"
+          role="listbox"
+        >
+          {suggestions.map((suggestion) => (
             <li
-              key={s?.place_id}
-              className="px-4 py-2 hover:bg-indigo-50 cursor-pointer"
-              onClick={() => handleSelect(s)}
+              key={suggestion.place_id}
+              className="px-4 py-3 hover:bg-indigo-50 cursor-pointer transition-colors duration-150"
+              onClick={() => handleSelect(suggestion)}
+              role="option"
+              aria-selected="false"
             >
-              <div className="flex items-center gap-2">
-                {s?.icon && <img src={s.icon} alt="icon" className="w-5 h-5" />}
-                <span className="font-medium">{s?.name}</span>
+              <div className="flex items-center gap-3">
+                {suggestion.icon && (
+                  <img
+                    src={suggestion.icon}
+                    alt=""
+                    className="w-5 h-5 object-contain"
+                    aria-hidden="true"
+                  />
+                )}
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-900">{suggestion.name}</span>
+                  <span className="text-sm text-gray-500">{suggestion.formatted_address}</span>
+                </div>
               </div>
-              <div className="text-xs text-gray-500">{s?.formatted_address}</div>
             </li>
           ))}
         </ul>
