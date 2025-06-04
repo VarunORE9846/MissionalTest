@@ -3,7 +3,7 @@ import axios from 'axios';
 const vapiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_VAPI_API_URL,
   headers: {
-    'Authorization': `Bearer d11fe948-fc57-4903-9ffd-1dbf59b31384`,
+    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_VAPI_API_KEY}`,
     'Content-Type': 'application/json',
   },
 });
