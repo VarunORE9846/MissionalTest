@@ -3,6 +3,7 @@ import BusinessSearchInput from './components/BusinessSearchInput';
 import BusinessProfileCard from './components/BusinessProfileCard';
 import { useAppSelector } from '../redux/store';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const selected = useAppSelector((state) => state.business.selected);
@@ -19,7 +20,7 @@ export default function Home() {
               <path d="M20 10a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z" fill="#fff" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-center">Find your Google Church Name</h1>
+          <h1 className="text-2xl font-bold text-center">Find your Google BusinessName</h1>
         </div>
         {!selected && (
           <>
@@ -27,20 +28,31 @@ export default function Home() {
             <div className="w-full flex flex-col items-center mt-4">
               <div className="flex items-center w-full gap-2 my-2">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">OR</span>
+                {/* <span className="text-xs text-gray-400">OR</span> */}
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
-              <button className="w-full border border-gray-300 rounded px-4 py-2 flex items-center justify-center gap-2 hover:bg-gray-50 transition">
+              {/* <button className="w-full border border-gray-300 rounded px-4 py-2 flex items-center justify-center gap-2 hover:bg-gray-50 transition">
                 <span className="text-indigo-700 font-semibold">Use my website instead</span>
-              </button>
+              </button> */}
             </div>
           </>
         )}
         {selected && !confirmed && (
-          <BusinessProfileCard onConfirm={() => setConfirmed(true)} />
+          <BusinessProfileCard />
         )}
         {confirmed && (
-          <div className="text-center text-green-600 font-semibold mt-8">Business profile confirmed! (Continue your flow here...)</div>
+          <div className="w-full p-6 bg-white rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Business Profile Confirmed!</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Your business profile has been successfully confirmed. You can now create an AI assistant for your business.
+            </p>
+            <Link
+              href="/assistant-create"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Create AI Assistant
+            </Link>
+          </div>
         )}
       </div>
     </div>

@@ -49,16 +49,21 @@ const BusinessSearchInput: React.FC = () => {
     setQuery(e.target.value);
   };
 
-  const handleSelect = (suggestion: Suggestion) => {
-    dispatch(setBusinessProfile({
-      place_id: suggestion.place_id,
-      name: suggestion.name,
-      address: suggestion.formatted_address,
-      icon: suggestion.icon,
-    }));
+  const handleSelect = async (suggestion: Suggestion) => {
     setQuery(suggestion.name);
     setSuggestions([]);
     setIsFocused(false);
+    try {
+      const res = await axios.get(`/api/google-business-details?place_id=${suggestion.place_id}`);
+      dispatch(setBusinessProfile({ ...res.data, place_id: suggestion.place_id, icon: suggestion.icon }));
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Google Details API error:', error.response?.data || error.message);
+      } else {
+        console.error('Error fetching business details:', error);
+      }
+      setError('Failed to fetch business details.');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

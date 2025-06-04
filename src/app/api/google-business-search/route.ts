@@ -47,10 +47,10 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json({ predictions });
-  } catch (error) {
-    console.error('Error fetching business suggestions:', error);
+  } catch (error: unknown) {
+    console.error('Error searching business:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch business suggestions' },
+      { error: error instanceof Error ? error.message : 'Failed to search business' },
       { status: 500 }
     );
   }
