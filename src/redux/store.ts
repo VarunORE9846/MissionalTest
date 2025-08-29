@@ -1,23 +1,24 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { combineReducers } from 'redux';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import businessReducer from './slices/businessSlice';
-
-const rootReducer = combineReducers({
-  business: businessReducer,
-});
+import vapiReducer from './slices/vapiSlice';
 
 const persistConfig = {
   key: 'root',
   storage,
+  whitelist: ['business', 'vapi'],
 };
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedBusinessReducer = persistReducer(persistConfig, businessReducer);
+const persistedVapiReducer = persistReducer(persistConfig, vapiReducer);
 
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: {
+    business: persistedBusinessReducer,
+    vapi: persistedVapiReducer,
+  },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,

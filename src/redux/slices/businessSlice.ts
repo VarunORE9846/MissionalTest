@@ -1,15 +1,17 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface BusinessProfile {
-  place_id: string;
+  place_id?: string;
   name: string;
   address: string;
   icon?: string;
   phone?: string;
   website?: string;
-  rating?: number;
-  reviews?: number;
-  photos?: string[];
+  overview?: string;
+  business_status?: string;
+  types?: string[];
+  url?: string;
+  service_times?: string[];
 }
 
 interface BusinessState {
